@@ -2,7 +2,7 @@ import cv2
 import os
 from pathos.multiprocessing import ProcessingPool as Pool
 from PIL import Image
-from numpy import asarray
+import numpy as np
 import json
 
 # Fill these parameters
@@ -10,7 +10,7 @@ NUMPROCESS = 8
 NEWWIDTH = 150
 NEWHEIGHT = 150
 STRIDE = 50
-CREATE = True   # Mark true or false if you want to create images
+CREATE = False   # Mark true or false if you want to create images
 PATH = "/media/bhux/ssd/grss_dse"
 
 train = PATH + "/dfc2021_dse_train/Train"
@@ -28,21 +28,24 @@ def findSurround(y, x):
             ((y+2),(x+2))]
     
 def bound(tup):
-    return (-1<tup[0] and tup[0]<16) and (-1<tup[1] and tup[1]<16)
+    return (0<tup[0] and tup[0]<17) and (0<tup[1] and tup[1]<17)
+
+labels_path = PATH + "/labels"
+os.makedirs(labels_path,exist_ok=True)
 
 # Training data
 for tile in range(1,61):
     tilePath = train + "/Tile" +str(tile)
     
     data = {}
-    labels = asarray(Image.open(tilePath + "/groundTruth.tif"))
+    labels = np.asarray(Image.open(tilePath + "/groundTruth.tif"))
     
     for y in range(16):
         for x in range(16):
             pts = findSurround(y, x)
     
             chunkStartPt = (pts[0][0] * 50, pts[0][1] * 50)
-            chunkLabels = list(map(lambda a : labels[a] if bound(a) else -1, pts))
+            chunkLabels = list(map(lambda a : labels[a[0]-1, a[1]-1] if bound(a) else -1, pts))
             chunkLabelsElec = list(map(lambda a : a < 3 if 0 < a else -1, chunkLabels))
             chunkLabelsSett = list(map(lambda a : (a % 2) > 0 if 0 < a else -1, chunkLabels))
             
